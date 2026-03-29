@@ -1,0 +1,19 @@
+# Netlify: static site + serverless proxy (same /api paths as node server.mjs)
+[build]
+  publish = "site"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/api/cybertrade-health"
+  to = "/.netlify/functions/cybertrade-health"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/cybertrade"
+  to = "/.netlify/functions/cybertrade"
+  status = 200
+  force = true

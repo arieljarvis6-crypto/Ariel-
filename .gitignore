@@ -1,0 +1,15 @@
+# Dependencies (if you add any later)
+node_modules/
+
+# Secrets — never commit your Google /exec URL here; use Netlify/Render env vars only
+.env
+.env.*
+*.local
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.netlify/
+
+# Cursor / IDE (optional; remove these lines if you want to share editor config)
+.cursor/

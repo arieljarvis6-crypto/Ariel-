@@ -1,0 +1,13 @@
+# Optional: deploy from GitHub with Render Blueprint (https://render.com/docs/infrastructure-as-code)
+# After deploy, set CYBERTRADE_APPS_SCRIPT_URL in the Render dashboard to your Apps Script /exec URL.
+
+services:
+  - type: web
+    name: cybertrade
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: CYBERTRADE_APPS_SCRIPT_URL
+        sync: false

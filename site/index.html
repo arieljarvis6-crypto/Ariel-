@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CyberTrade TPS + MIS</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="container">
+        <div class="title-row">
+          <div>
+            <h1>CyberTrade</h1>
+            <p class="subtitle">Transaction Processing System (TPS) + MIS Dashboard</p>
+          </div>
+          <div class="clock-card">
+            <div class="clock-label">Current date & time</div>
+            <div id="clock" class="clock-value">—</div>
+          </div>
+        </div>
+
+        <nav class="tabs" aria-label="CyberTrade sections">
+          <button id="tabTps" type="button" class="tab active">TPS (POS)</button>
+          <button id="tabMis" type="button" class="tab">MIS Dashboard</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section id="viewTps" class="grid">
+        <div class="card">
+          <div class="card-header">
+            <h2>Point of Sale (TPS)</h2>
+            <p class="muted">Record a sale and store it in Google Sheets.</p>
+          </div>
+
+          <form id="tpsForm" class="form">
+            <label class="field">
+              <span class="label">Staff name / ID</span>
+              <input id="staffName" type="text" placeholder="e.g., Alex / CT-07" required />
+            </label>
+
+            <label class="field">
+              <span class="label">Product</span>
+              <select id="productSelect" required></select>
+            </label>
+
+            <div class="row">
+              <label class="field">
+                <span class="label">Quantity</span>
+                <input id="quantity" type="number" min="1" step="1" value="1" required />
+              </label>
+              <label class="field">
+                <span class="label">Unit price</span>
+                <input id="unitPrice" type="text" disabled />
+              </label>
+            </div>
+
+            <label class="field">
+              <span class="label">Total price</span>
+              <input id="totalPrice" type="text" disabled />
+            </label>
+
+            <div class="row actions">
+              <button id="submitBtn" type="submit" class="btn primary">Submit Transaction</button>
+              <button id="resetBtn" type="button" class="btn">Reset</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="field">
+              <span class="label">Google Sheets API URL (Apps Script Web App)</span>
+              <input
+                id="apiUrl"
+                type="url"
+                placeholder="Paste your Apps Script Web App URL here"
+                autocomplete="off"
+              />
+              <div class="hint">
+                Must be the <strong>Deploy → Web app</strong> link (contains <code>script.google.com/macros</code> and ends with
+                <code>/exec</code>). A normal “Share” spreadsheet link will not work here.
+              </div>
+              <label class="proxy-option">
+                <input id="useProxyToggle" type="checkbox" />
+                <span>
+                  Use <strong>server bridge</strong> (recommended for phones &amp; “failed to fetch”). The backend (your PC with
+                  <code>node server.mjs</code>, or <strong>Netlify Functions</strong> / Render — see README) stores the Web App
+                  URL once; visitors usually do not paste the Google link. On Netlify, set
+                  <code>CYBERTRADE_APPS_SCRIPT_URL</code> in site environment variables and use a <strong>Git</strong> deploy (not
+                  drag‑and‑drop only).
+                </span>
+              </label>
+              <div id="proxyHint" class="hint hidden"></div>
+            </div>
+
+            <div id="tpsStatus" class="status" role="status" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Quick MIS Snapshot</h2>
+            <p class="muted">A lightweight view. Use the full MIS tab for charts and details.</p>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi">
+              <div class="kpi-label">Total sales (today)</div>
+              <div id="kpiTotalSalesMini" class="kpi-value">—</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Transactions (today)</div>
+              <div id="kpiTxCountMini" class="kpi-value">—</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Best-selling product</div>
+              <div id="kpiBestProductMini" class="kpi-value">—</div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <button id="goToMisBtn" class="btn primary" type="button">Open MIS Dashboard</button>
+          <div class="hint">The MIS dashboard can auto-refresh every few seconds.</div>
+        </div>
+      </section>
+
+      <section id="viewMis" class="card hidden">
+          <div class="card-header">
+            <h2>MIS Dashboard</h2>
+            <p class="muted">Today’s sales performance from your Sheet.</p>
+          </div>
+
+          <div class="dash-controls">
+            <button id="refreshBtn" class="btn primary">Refresh Dashboard</button>
+            <button id="loadFromLocalBtn" class="btn">Use Local Cache</button>
+            <label class="toggle">
+              <input id="autoRefreshToggle" type="checkbox" checked />
+              <span>Auto-refresh</span>
+            </label>
+            <label class="field compact">
+              <span class="label">Every (seconds)</span>
+              <input id="autoRefreshSeconds" type="number" min="2" step="1" value="8" />
+            </label>
+          </div>
+          <div class="hint">
+            If the API is unavailable, “Use Local Cache” will compute metrics from your last fetched data stored in the browser.
+          </div>
+
+          <div class="kpis">
+            <div class="kpi">
+              <div class="kpi-label">Total sales (today)</div>
+              <div id="kpiTotalSales" class="kpi-value">—</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Transactions (today)</div>
+              <div id="kpiTxCount" class="kpi-value">—</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Best-selling product (today)</div>
+              <div id="kpiBestProduct" class="kpi-value">—</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <h3 class="section-title">Sales by staff (today)</h3>
+          <div class="table-wrap">
+            <table class="table" aria-label="Sales by staff">
+              <thead>
+                <tr>
+                  <th>Staff</th>
+                  <th class="right">Transactions</th>
+                  <th class="right">Sales</th>
+                </tr>
+              </thead>
+              <tbody id="staffTableBody">
+                <tr><td colspan="3" class="muted">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="divider"></div>
+
+          <h3 class="section-title">Sales trend (today)</h3>
+          <div class="chart-wrap">
+            <canvas id="salesChart" height="180"></canvas>
+          </div>
+
+          <div id="dashStatus" class="status" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Performance Testing (Sample Data)</h2>
+          <p class="muted">
+            Bulk-generate transactions to test at least 1000 records. This will POST into your Google Sheet.
+          </p>
+        </div>
+
+        <div class="row">
+          <label class="field">
+            <span class="label">How many transactions?</span>
+            <input id="bulkCount" type="number" min="1" step="1" value="250" />
+          </label>
+          <label class="field">
+            <span class="label">Throttle (ms between requests)</span>
+            <input id="bulkDelay" type="number" min="0" step="50" value="50" />
+          </label>
+        </div>
+        <div class="row actions">
+          <button id="bulkGenerateBtn" class="btn primary" type="button">Generate & Upload</button>
+          <button id="bulkStopBtn" class="btn danger" type="button" disabled>Stop</button>
+        </div>
+        <div class="hint">
+          If you set delay too low, Google Apps Script may rate-limit. Try 25–100ms.
+        </div>
+        <div id="bulkStatus" class="status" role="status" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <span class="muted">CyberTrade demo TPS/MIS — static app + Google Sheets backend</span>
+      </div>
+    </footer>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
+
