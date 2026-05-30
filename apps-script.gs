@@ -4,6 +4,7 @@
  * What it does:
  * - doPost: accepts JSON transaction payload and appends a new row to the active sheet
  * - doGet?mode=list: returns all transactions as JSON
+ * - doGet?mode=csv: returns all rows as CSV (for Power BI)
  *
  * How to use:
  * - Create a Google Sheet (e.g. "CyberTrade-Transactions")
@@ -40,6 +41,22 @@ function ensureSheet_() {
 
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function csv_(text) {
+  return ContentService.createTextOutput(text).setMimeType(ContentService.MimeType.CSV);
+}
+
+function escapeCsv_(v) {
+  const s = String(v == null ? "" : v);
+  if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function sheetToCsv_(sheet) {
+  const values = sheet.getDataRange().getValues();
+  if (values.length === 0) return "";
+  return values.map((row) => row.map(escapeCsv_).join(",")).join("\n");
 }
 
 function readBody_(e) {
@@ -87,23 +104,34 @@ function doPost(e) {
 
 function doGet(e) {
   const mode = (e && e.parameter && e.parameter.mode) || "";
-  if (mode !== "list") return json_({ ok: true, message: "CyberTrade API is running. Use ?mode=list" });
-
   const sheet = ensureSheet_();
-  const values = sheet.getDataRange().getValues();
-  if (values.length <= 1) return json_({ ok: true, transactions: [] });
 
-  const header = values[0].map(String);
-  const rows = values.slice(1);
+  if (mode === "csv" || mode === "export") {
+    return csv_(sheetToCsv_(sheet));
+  }
 
-  const transactions = rows
-    .filter((r) => r.some((c) => String(c || "").trim() !== ""))
-    .map((r) => {
-      const obj = {};
-      for (let i = 0; i < header.length; i++) obj[header[i]] = r[i];
-      return obj;
-    });
+  if (mode === "list") {
+    const values = sheet.getDataRange().getValues();
+    if (values.length <= 1) return json_({ ok: true, transactions: [] });
 
-  return json_({ ok: true, transactions });
+    const header = values[0].map(String);
+    const rows = values.slice(1);
+
+    const transactions = rows
+      .filter((r) => r.some((c) => String(c || "").trim() !== ""))
+      .map((r) => {
+        const obj = {};
+        for (let i = 0; i < header.length; i++) obj[header[i]] = r[i];
+        return obj;
+      });
+
+    return json_({ ok: true, transactions });
+  }
+
+  return json_({
+    ok: true,
+    message: "CyberTrade API is running.",
+    modes: ["list", "csv"],
+  });
 }
 

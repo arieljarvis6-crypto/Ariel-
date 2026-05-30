@@ -6,6 +6,7 @@ A simple web-based **Transaction Processing System (POS/TPS)** with a basic **MI
 - Storage: Google Sheets (each transaction = new row)
 - MIS: today’s total sales, transaction count, best-selling product, sales by staff, sales trend chart
 - Performance: bulk-generate sample transactions (e.g. 1000+) for testing
+- **Power BI assignment:** export CSV from MIS tab; full steps in [`powerbi/README.md`](powerbi/README.md)
 
 ---
 

@@ -288,6 +288,89 @@ function loadCachedTransactions() {
   }
 }
 
+function escapeCsvCell(v) {
+  const s = String(v == null ? "" : v);
+  if (/[",\n\r]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
+  return s;
+}
+
+/** Extra columns help Power BI (saleDate, saleMonth) without editing the Sheet. */
+function transactionsToCsv(transactions) {
+  const header = [
+    "transactionId",
+    "dateTime",
+    "saleDate",
+    "saleMonth",
+    "itemCode",
+    "itemName",
+    "quantity",
+    "unitPrice",
+    "totalPrice",
+    "staffName",
+  ];
+  const lines = [header.join(",")];
+  for (const t of transactions) {
+    const saleDate = Number.isFinite(t.dateTime.getTime()) ? t.dateTime.toISOString().slice(0, 10) : "";
+    const saleMonth = saleDate ? saleDate.slice(0, 7) : "";
+    const row = [
+      t.transactionId,
+      Number.isFinite(t.dateTime.getTime()) ? t.dateTime.toISOString() : "",
+      saleDate,
+      saleMonth,
+      t.itemCode,
+      t.itemName,
+      t.quantity,
+      t.unitPrice,
+      t.totalPrice,
+      t.staffName,
+    ];
+    lines.push(row.map(escapeCsvCell).join(","));
+  }
+  return lines.join("\n");
+}
+
+function downloadTextFile(filename, text, mime = "text/csv;charset=utf-8") {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadPowerBiCsv() {
+  const statusEl = $("dashStatus");
+  try {
+    setStatus(statusEl, "Preparing CSV export…");
+    const { error, ctx } = getApiContext();
+    let raw = [];
+    if (error) {
+      raw = loadCachedTransactions();
+      if (!raw.length) throw new Error(error);
+    } else {
+      raw = await apiGetTransactions(ctx);
+      cacheTransactions(raw);
+    }
+    if (!raw.length) {
+      setStatus(
+        statusEl,
+        "No transactions in the sheet yet. Run “Generate & Upload” (1000 rows) or add sales first.",
+        "error"
+      );
+      return;
+    }
+    const txs = raw.map(normalizeTx);
+    const csv = transactionsToCsv(txs);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const name = `CyberTrade-Transactions-${stamp}.csv`;
+    downloadTextFile(name, csv);
+    setStatus(statusEl, `Downloaded ${txs.length} rows → ${name}. Open Power BI → Get data → Text/CSV.`, "success");
+  } catch (err) {
+    setStatus(statusEl, err?.message || String(err), "error");
+  }
+}
+
 function normalizeTx(tx) {
   // The API returns plain objects. Ensure types are sane for calculations.
   const dt = new Date(tx.dateTime || tx.datetime || tx.timestamp || tx.date || tx.DateTime || tx.Date || tx.Time || "");
@@ -708,6 +791,7 @@ function wireUpEvents() {
   });
 
   $("refreshBtn").addEventListener("click", () => refreshDashboard({ source: "api" }));
+  $("downloadCsvBtn").addEventListener("click", () => downloadPowerBiCsv());
   $("loadFromLocalBtn").addEventListener("click", () => refreshDashboard({ source: "local" }));
 
   $("tabTps").addEventListener("click", () => {

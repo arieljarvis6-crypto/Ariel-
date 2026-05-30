@@ -133,6 +133,7 @@
 
           <div class="dash-controls">
             <button id="refreshBtn" class="btn primary">Refresh Dashboard</button>
+            <button id="downloadCsvBtn" class="btn">Download CSV for Power BI</button>
             <button id="loadFromLocalBtn" class="btn">Use Local Cache</button>
             <label class="toggle">
               <input id="autoRefreshToggle" type="checkbox" checked />
@@ -145,6 +146,7 @@
           </div>
           <div class="hint">
             If the API is unavailable, “Use Local Cache” will compute metrics from your last fetched data stored in the browser.
+            For the university dashboard assignment, use <strong>Download CSV for Power BI</strong> (see <code>powerbi/README.md</code> in the repo).
           </div>
 
           <div class="kpis">
@@ -201,7 +203,7 @@
         <div class="row">
           <label class="field">
             <span class="label">How many transactions?</span>
-            <input id="bulkCount" type="number" min="1" step="1" value="250" />
+            <input id="bulkCount" type="number" min="1" step="1" value="1000" />
           </label>
           <label class="field">
             <span class="label">Throttle (ms between requests)</span>

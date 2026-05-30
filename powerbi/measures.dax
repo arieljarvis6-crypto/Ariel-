@@ -1,0 +1,10 @@
+// CyberTrade — paste into Power BI (Modeling → New measure)
+// Rename table "Transactions" if your imported table has a different name.
+
+Total Sales = SUM(Transactions[totalPrice])
+
+Transaction Count = COUNTROWS(Transactions)
+
+Units Sold = SUM(Transactions[quantity])
+
+Avg Order Value = DIVIDE([Total Sales], [Transaction Count])
